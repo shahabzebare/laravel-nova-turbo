@@ -3,10 +3,12 @@
 namespace Shahabzebare\NovaTurbo\Services;
 
 use Illuminate\Support\Collection;
+use Laravel\Nova\Fields\BelongsTo;
 use Laravel\Nova\Fields\BelongsToMany;
 use Laravel\Nova\Fields\HasMany;
 use Laravel\Nova\Fields\HasManyThrough;
 use Laravel\Nova\Fields\MorphMany;
+use Laravel\Nova\Fields\MorphTo;
 use Laravel\Nova\Fields\MorphToMany;
 use Laravel\Nova\Http\Requests\NovaRequest;
 use Laravel\Nova\Resource;
@@ -53,8 +55,17 @@ class RelationshipMapper
             $fields = $resource->fields($request);
 
             foreach ($fields as $field) {
-                if ($this->isRelationshipField($field) && isset($field->resourceClass)) {
-                    $related[] = $field->resourceClass;
+                if ($this->isRelationshipField($field)) {
+                    // MorphTo can have multiple resource types
+                    if ($field instanceof MorphTo && !empty($field->morphToTypes)) {
+                        foreach ($field->morphToTypes as $type) {
+                            if (isset($type['value'])) {
+                                $related[] = $type['value'];
+                            }
+                        }
+                    } elseif (isset($field->resourceClass)) {
+                        $related[] = $field->resourceClass;
+                    }
                 }
             }
         } catch (\Throwable) {
@@ -65,14 +76,19 @@ class RelationshipMapper
     }
 
     /**
-     * Check if a field is a "to many" relationship field.
+     * Check if a field is a relationship field.
      */
     protected function isRelationshipField(mixed $field): bool
     {
-        return $field instanceof HasMany
+        // "To One" relationships (for dropdowns on create/edit)
+        return $field instanceof BelongsTo
+            || $field instanceof MorphTo
+            // "To Many" relationships (for related resource tabs)
+            || $field instanceof HasMany
             || $field instanceof MorphMany
             || $field instanceof BelongsToMany
             || $field instanceof HasManyThrough
             || $field instanceof MorphToMany;
     }
 }
+
