@@ -38,6 +38,12 @@
             "Shahabzebare\\NovaTurbo\\Tests\\": "tests"
         }
     },
+    "repositories": [
+        {
+            "type": "composer",
+            "url": "https://nova.laravel.com"
+        }
+    ],
     "scripts": {
         "test": "vendor/bin/phpunit"
     },
