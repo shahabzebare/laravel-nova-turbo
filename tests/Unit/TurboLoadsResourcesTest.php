@@ -6,7 +6,6 @@ namespace Shahabzebare\NovaTurbo\Tests\Unit;
 
 use Illuminate\Http\Request;
 use Illuminate\Routing\Route;
-use Laravel\Nova\Nova;
 use Shahabzebare\NovaTurbo\Services\MetadataCache;
 use Shahabzebare\NovaTurbo\Tests\Fixtures\Nova\CommentResource;
 use Shahabzebare\NovaTurbo\Tests\Fixtures\Nova\PostResource;
@@ -23,7 +22,7 @@ class TurboLoadsResourcesTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->cache = new MetadataCache();
+        $this->cache = new MetadataCache;
         $this->cache->clear();
         // Ensure production mode for most tests
         $this->app['env'] = 'production';

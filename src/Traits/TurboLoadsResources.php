@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Shahabzebare\NovaTurbo\Traits;
 
 use Illuminate\Support\Str;

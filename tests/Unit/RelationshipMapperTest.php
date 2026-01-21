@@ -18,7 +18,7 @@ class RelationshipMapperTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->mapper = new RelationshipMapper();
+        $this->mapper = new RelationshipMapper;
     }
 
     public function test_map_returns_array(): void

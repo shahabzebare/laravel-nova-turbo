@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Shahabzebare\NovaTurbo\Services;
 
 /**
@@ -32,7 +34,7 @@ class MetadataCache
      */
     public function get(): ?array
     {
-        if (!$this->exists()) {
+        if (! $this->exists()) {
             return null;
         }
 

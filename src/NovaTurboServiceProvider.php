@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Shahabzebare\NovaTurbo;
 
 use Illuminate\Support\ServiceProvider;
@@ -47,7 +49,7 @@ class NovaTurboServiceProvider extends ServiceProvider
 
     /**
      * Override Nova's resource metadata with cached data.
-     * 
+     *
      * Merges cached static metadata with real-time authorization checks
      * for the currently loaded resources.
      */
@@ -56,7 +58,7 @@ class NovaTurboServiceProvider extends ServiceProvider
         $cache = $this->app->make(MetadataCache::class);
 
         // Only override if cache exists
-        if (!$cache->exists()) {
+        if (! $cache->exists()) {
             return;
         }
 
@@ -81,6 +83,7 @@ class NovaTurboServiceProvider extends ServiceProvider
                 return array_map(function ($cached) use ($liveAuthMap) {
                     // Use live authorization if available, otherwise default to false (safer)
                     $cached['authorizedToCreate'] = $liveAuthMap[$cached['uriKey']] ?? false;
+
                     return $cached;
                 }, $cachedMetadata);
             },

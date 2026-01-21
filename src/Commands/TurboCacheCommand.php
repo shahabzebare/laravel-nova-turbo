@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Shahabzebare\NovaTurbo\Commands;
 
 use Illuminate\Console\Command;

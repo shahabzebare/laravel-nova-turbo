@@ -16,7 +16,7 @@ class ResourceScannerTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->scanner = new ResourceScanner();
+        $this->scanner = new ResourceScanner;
         NovaTurbo::clearExternalResources();
     }
 

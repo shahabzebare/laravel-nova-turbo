@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Shahabzebare\NovaTurbo\Services;
 
 use Illuminate\Support\Collection;
@@ -21,8 +23,8 @@ class RelationshipMapper
     /**
      * Build a map of resource URI keys to their related resource classes.
      *
-     * @param  Collection<string, class-string<Resource>>  $resources
-     * @return array<string, array<int, class-string<Resource>>>
+     * @param  Collection<string, class-string<resource>>  $resources
+     * @return array<string, array<int, class-string<resource>>>
      */
     public function map(Collection $resources): array
     {
@@ -38,8 +40,8 @@ class RelationshipMapper
     /**
      * Get the resource class and its related resources.
      *
-     * @param  class-string<Resource>  $resourceClass
-     * @return array<int, class-string<Resource>>
+     * @param  class-string<resource>  $resourceClass
+     * @return array<int, class-string<resource>>
      */
     protected function getRelatedResources(string $resourceClass): array
     {
@@ -48,7 +50,7 @@ class RelationshipMapper
         try {
             // Create a resource instance with a model
             $modelClass = $resourceClass::$model;
-            $resource = new $resourceClass(new $modelClass());
+            $resource = new $resourceClass(new $modelClass);
 
             // Get fields and find relationships
             $request = app(NovaRequest::class);
@@ -57,7 +59,7 @@ class RelationshipMapper
             foreach ($fields as $field) {
                 if ($this->isRelationshipField($field)) {
                     // MorphTo can have multiple resource types
-                    if ($field instanceof MorphTo && !empty($field->morphToTypes)) {
+                    if ($field instanceof MorphTo && ! empty($field->morphToTypes)) {
                         foreach ($field->morphToTypes as $type) {
                             if (isset($type['value'])) {
                                 $related[] = $type['value'];
@@ -91,4 +93,3 @@ class RelationshipMapper
             || $field instanceof MorphToMany;
     }
 }
-

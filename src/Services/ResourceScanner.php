@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Shahabzebare\NovaTurbo\Services;
 
 use Illuminate\Support\Collection;
@@ -18,7 +20,7 @@ class ResourceScanner
     /**
      * Scan all configured paths for Nova resources.
      *
-     * @return Collection<string, class-string<Resource>>
+     * @return Collection<string, class-string<resource>>
      */
     public function scan(): Collection
     {
@@ -41,21 +43,21 @@ class ResourceScanner
     /**
      * Scan a specific path for Nova resources.
      *
-     * @return Collection<string, class-string<Resource>>
+     * @return Collection<string, class-string<resource>>
      */
     protected function scanPath(string $path): Collection
     {
         $namespace = app()->getNamespace();
         $resources = collect();
 
-        foreach ((new Finder())->in($path)->files()->name('*.php') as $file) {
+        foreach ((new Finder)->in($path)->files()->name('*.php') as $file) {
             $class = $namespace.str_replace(
                 ['/', '.php'],
                 ['\\', ''],
                 Str::after($file->getPathname(), app_path().DIRECTORY_SEPARATOR)
             );
 
-            if (!class_exists($class)) {
+            if (! class_exists($class)) {
                 continue;
             }
 
@@ -77,8 +79,8 @@ class ResourceScanner
             $reflection = new ReflectionClass($class);
 
             return is_subclass_of($class, Resource::class)
-                && !$reflection->isAbstract()
-                && !is_subclass_of($class, ActionResource::class);
+                && ! $reflection->isAbstract()
+                && ! is_subclass_of($class, ActionResource::class);
         } catch (\Throwable) {
             return false;
         }

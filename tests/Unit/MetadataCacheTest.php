@@ -14,7 +14,7 @@ class MetadataCacheTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->cache = new MetadataCache();
+        $this->cache = new MetadataCache;
         $this->cache->clear(); // Start fresh
     }
 

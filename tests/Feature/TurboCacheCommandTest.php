@@ -28,7 +28,7 @@ class TurboCacheCommandTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->cache = new MetadataCache();
+        $this->cache = new MetadataCache;
         $this->cache->clear();
         NovaTurbo::clearExternalResources();
     }
