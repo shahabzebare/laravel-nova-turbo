@@ -32,8 +32,7 @@ class ResourceScanner
 
         // Also include externally registered resources
         foreach (NovaTurbo::getExternalResources() as $resource) {
-            $uriKey = Str::plural(Str::kebab(class_basename($resource)));
-            $resources[$uriKey] = $resource;
+            $resources[$resource::uriKey()] = $resource;
         }
 
         return $resources;
