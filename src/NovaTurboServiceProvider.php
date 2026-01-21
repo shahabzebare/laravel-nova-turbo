@@ -47,6 +47,9 @@ class NovaTurboServiceProvider extends ServiceProvider
 
     /**
      * Override Nova's resource metadata with cached data.
+     * 
+     * Merges cached static metadata with real-time authorization checks
+     * for the currently loaded resources.
      */
     protected function overrideResourceMetadata(): void
     {
@@ -59,14 +62,27 @@ class NovaTurboServiceProvider extends ServiceProvider
 
         Nova::provideToScript([
             'resources' => function ($request) use ($cache) {
-                $metadata = $cache->getResourceMetadata();
+                $cachedMetadata = $cache->getResourceMetadata();
 
                 // Fallback to Nova's default if cache is empty
-                if (empty($metadata)) {
+                if (empty($cachedMetadata)) {
                     return Nova::resourceInformation($request);
                 }
 
-                return $metadata;
+                // Get real-time authorization for LOADED resources only
+                // This is fast because we only check 1-3 resources, not all 43
+                $liveResourceInfo = Nova::resourceInformation($request);
+                $liveAuthMap = [];
+                foreach ($liveResourceInfo as $info) {
+                    $liveAuthMap[$info['uriKey']] = $info['authorizedToCreate'] ?? false;
+                }
+
+                // Merge cached metadata with live authorization
+                return array_map(function ($cached) use ($liveAuthMap) {
+                    // Use live authorization if available, otherwise default to false (safer)
+                    $cached['authorizedToCreate'] = $liveAuthMap[$cached['uriKey']] ?? false;
+                    return $cached;
+                }, $cachedMetadata);
             },
         ]);
     }

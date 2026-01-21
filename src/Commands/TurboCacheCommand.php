@@ -63,10 +63,11 @@ class TurboCacheCommand extends Command
         return $resources->map(function ($class) {
             return [
                 'uriKey' => $class::uriKey(),
-                'label' => $class::label(),
-                'singularLabel' => $class::singularLabel(),
-                'createButtonLabel' => $class::createButtonLabel(),
-                'updateButtonLabel' => $class::updateButtonLabel(),
+                // Cast to string to handle PendingTranslation objects
+                'label' => (string) $class::label(),
+                'singularLabel' => (string) $class::singularLabel(),
+                'createButtonLabel' => (string) $class::createButtonLabel(),
+                'updateButtonLabel' => (string) $class::updateButtonLabel(),
                 'authorizedToCreate' => true, // Runtime check
                 'searchable' => $class::searchable(),
                 'tableStyle' => $class::tableStyle(),
