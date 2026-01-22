@@ -50,8 +50,8 @@ class NovaTurboServiceProvider extends ServiceProvider
     /**
      * Override Nova's resource metadata with cached data.
      *
-     * Merges cached static metadata with real-time authorization checks
-     * for the currently loaded resources.
+     * Uses ONLY cached metadata - no live resource loading for authorization.
+     * This is the key to performance: we skip Nova::resourceInformation() entirely.
      */
     protected function overrideResourceMetadata(): void
     {
@@ -62,31 +62,17 @@ class NovaTurboServiceProvider extends ServiceProvider
             return;
         }
 
+        $cachedMetadata = $cache->getResourceMetadata();
+
+        // Don't override if cache is empty
+        if (empty($cachedMetadata)) {
+            return;
+        }
+
+        // Provide cached metadata directly - NO live authorization check
+        // This avoids loading all resource classes just for metadata
         Nova::provideToScript([
-            'resources' => function ($request) use ($cache) {
-                $cachedMetadata = $cache->getResourceMetadata();
-
-                // Fallback to Nova's default if cache is empty
-                if (empty($cachedMetadata)) {
-                    return Nova::resourceInformation($request);
-                }
-
-                // Get real-time authorization for LOADED resources only
-                // This is fast because we only check 1-3 resources, not all 43
-                $liveResourceInfo = Nova::resourceInformation($request);
-                $liveAuthMap = [];
-                foreach ($liveResourceInfo as $info) {
-                    $liveAuthMap[$info['uriKey']] = $info['authorizedToCreate'] ?? false;
-                }
-
-                // Merge cached metadata with live authorization
-                return array_map(function ($cached) use ($liveAuthMap) {
-                    // Use live authorization if available, otherwise default to false (safer)
-                    $cached['authorizedToCreate'] = $liveAuthMap[$cached['uriKey']] ?? false;
-
-                    return $cached;
-                }, $cachedMetadata);
-            },
+            'resources' => $cachedMetadata,
         ]);
     }
 }

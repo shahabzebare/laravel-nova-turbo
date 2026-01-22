@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Shahabzebare\NovaTurbo\Traits;
 
+use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 use Laravel\Nova\Nova;
 use Shahabzebare\NovaTurbo\Services\MetadataCache;
@@ -35,23 +36,6 @@ trait TurboLoadsResources
             return;
         }
 
-        // API requests need all resources (filters, actions, etc.)
-        if (Str::startsWith($request->path(), 'nova-api')) {
-            parent::resources();
-
-            return;
-        }
-
-        // Get resource key from route
-        $resource = $request->route()->parameter('resource');
-
-        // No resource = dashboard/home, load all for menu
-        if (empty($resource)) {
-            parent::resources();
-
-            return;
-        }
-
         // In development mode with auto-refresh, skip lazy loading
         if ($this->shouldAutoRefresh()) {
             parent::resources();
@@ -63,23 +47,82 @@ trait TurboLoadsResources
         $cache = app(MetadataCache::class);
         $relationships = $cache->getRelationships();
 
-        // Cache miss or resource not found = load all
-        if (empty($relationships) || ! isset($relationships[$resource])) {
+        // No cache = load all (cache hasn't been generated yet)
+        if (empty($relationships)) {
+            parent::resources();
+
+            return;
+        }
+
+        // Extract resource key from request (works for both page and API requests)
+        $resource = $this->extractResourceKey($request);
+
+        // No resource = dashboard/home, load all for menu
+        if (empty($resource)) {
+            parent::resources();
+
+            return;
+        }
+
+        // Resource not in cache = load all (safety fallback)
+        if (! isset($relationships[$resource])) {
             parent::resources();
 
             return;
         }
 
         // Lazy load only needed resources
+        $this->lazyLoadResources($request, $resource, $relationships[$resource]);
+    }
+
+    /**
+     * Extract resource key from the request (both page and API routes).
+     */
+    protected function extractResourceKey(Request $request): ?string
+    {
+        // First try route parameter (for page requests)
+        $resource = $request->route()->parameter('resource');
+        if ($resource) {
+            return $resource;
+        }
+
+        // For API requests, extract from path: nova-api/{resource}/...
+        $path = $request->path();
+        if (Str::startsWith($path, 'nova-api/')) {
+            $segments = explode('/', $path);
+
+            // nova-api/{resource} → index 1 is the resource
+            return $segments[1] ?? null;
+        }
+
+        return null;
+    }
+
+    /**
+     * Lazy load resources based on the request type.
+     *
+     * @param  array<int, class-string>  $relatedResources
+     */
+    protected function lazyLoadResources(Request $request, string $resource, array $relatedResources): void
+    {
         $routeName = $request->route()?->getName();
 
+        // Detail/Attach/Edit pages need all related resources
         if (in_array($routeName, ['nova.pages.detail', 'nova.pages.attach', 'nova.pages.edit'])) {
-            // Detail/Attach/Edit pages need related resources
-            Nova::resources($relationships[$resource]);
-        } else {
-            // Index/Create pages only need the current resource
-            Nova::resources([$relationships[$resource][0]]);
+            Nova::resources($relatedResources);
+
+            return;
         }
+
+        // API requests need all related resources (for filters, actions, etc.)
+        if (Str::startsWith($request->path(), 'nova-api')) {
+            Nova::resources($relatedResources);
+
+            return;
+        }
+
+        // Index/Create pages only need the current resource
+        Nova::resources([$relatedResources[0]]);
     }
 
     /**
