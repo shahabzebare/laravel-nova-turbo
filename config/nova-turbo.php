@@ -12,7 +12,7 @@ return [
     | see resource changes immediately without running the cache command.
     |
     */
-    'auto_refresh_in_dev' => env('NOVA_TURBO_AUTO_REFRESH', true),
+    'auto_refresh_in_dev' => env('NOVA_TURBO_AUTO_REFRESH', false),
 
     /*
     |--------------------------------------------------------------------------

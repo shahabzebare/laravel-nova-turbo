@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Shahabzebare\NovaTurbo\Traits;
 
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use Laravel\Nova\Nova;
 use Shahabzebare\NovaTurbo\Services\MetadataCache;
@@ -31,6 +32,7 @@ trait TurboLoadsResources
 
         // Safety: no route available = early boot, console, etc.
         if ($request->route() === null) {
+            Log::debug('[NovaTurbo] No route, loading all resources');
             parent::resources();
 
             return;
@@ -38,6 +40,7 @@ trait TurboLoadsResources
 
         // In development mode with auto-refresh, skip lazy loading
         if ($this->shouldAutoRefresh()) {
+            Log::debug('[NovaTurbo] Auto-refresh enabled, loading all resources');
             parent::resources();
 
             return;
@@ -49,6 +52,7 @@ trait TurboLoadsResources
 
         // No cache = load all (cache hasn't been generated yet)
         if (empty($relationships)) {
+            Log::debug('[NovaTurbo] No cache found, loading all resources');
             parent::resources();
 
             return;
@@ -59,6 +63,7 @@ trait TurboLoadsResources
 
         // No resource = dashboard/home, load all for menu
         if (empty($resource)) {
+            Log::debug('[NovaTurbo] No resource key (dashboard), loading all resources');
             parent::resources();
 
             return;
@@ -66,6 +71,7 @@ trait TurboLoadsResources
 
         // Resource not in cache = load all (safety fallback)
         if (! isset($relationships[$resource])) {
+            Log::debug("[NovaTurbo] Resource '{$resource}' not in cache, loading all resources");
             parent::resources();
 
             return;
@@ -73,6 +79,8 @@ trait TurboLoadsResources
 
         // Lazy load only needed resources
         $this->lazyLoadResources($request, $resource, $relationships[$resource]);
+
+        Log::debug('[NovaTurbo] Lazy loaded: '.count($relationships[$resource]).' resources for '.$resource);
     }
 
     /**
@@ -131,6 +139,6 @@ trait TurboLoadsResources
     protected function shouldAutoRefresh(): bool
     {
         return app()->environment('local')
-            && config('nova-turbo.auto_refresh_in_dev', true);
+            && config('nova-turbo.auto_refresh_in_dev', false);
     }
 }
