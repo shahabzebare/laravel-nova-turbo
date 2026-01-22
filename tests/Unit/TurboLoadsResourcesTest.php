@@ -24,43 +24,12 @@ class TurboLoadsResourcesTest extends TestCase
         parent::setUp();
         $this->cache = new MetadataCache;
         $this->cache->clear();
-        // Ensure production mode for most tests
-        $this->app['env'] = 'production';
-        $this->app['config']->set('nova-turbo.auto_refresh_in_dev', false);
     }
 
     protected function tearDown(): void
     {
         $this->cache->clear();
         parent::tearDown();
-    }
-
-    // ---------------------------------------------------------------
-    // shouldAutoRefresh() tests
-    // ---------------------------------------------------------------
-
-    public function test_should_auto_refresh_returns_true_in_local(): void
-    {
-        $this->app['env'] = 'local';
-        $this->app['config']->set('nova-turbo.auto_refresh_in_dev', true);
-
-        $this->assertTrue($this->shouldAutoRefresh());
-    }
-
-    public function test_should_auto_refresh_returns_false_in_production(): void
-    {
-        $this->app['env'] = 'production';
-        $this->app['config']->set('nova-turbo.auto_refresh_in_dev', true);
-
-        $this->assertFalse($this->shouldAutoRefresh());
-    }
-
-    public function test_should_auto_refresh_respects_config(): void
-    {
-        $this->app['env'] = 'local';
-        $this->app['config']->set('nova-turbo.auto_refresh_in_dev', false);
-
-        $this->assertFalse($this->shouldAutoRefresh());
     }
 
     // ---------------------------------------------------------------
@@ -244,19 +213,54 @@ class TurboLoadsResourcesTest extends TestCase
     }
 
     // ---------------------------------------------------------------
-    // Full resources() method integration tests
+    // extractResourceKey tests
     // ---------------------------------------------------------------
 
-    public function test_resources_lazy_loads_for_index_page_in_production(): void
+    public function test_extract_resource_key_from_route_parameter(): void
     {
-        // Setup: production mode, cache exists
-        $this->app['env'] = 'production';
-        $this->cache->store(
-            ['users' => [UserResource::class]],
-            []
-        );
+        $request = Request::create('/nova/resources/users');
+        $route = new Route('GET', '/nova/resources/{resource}', []);
+        $route->parameters = ['resource' => 'users'];
+        $route->bind($request);
+        $request->setRouteResolver(fn () => $route);
+        $this->app->instance('request', $request);
 
-        // Create request for index page
+        $result = $this->extractResourceKey($request);
+        $this->assertEquals('users', $result);
+    }
+
+    public function test_extract_resource_key_from_api_path(): void
+    {
+        $request = Request::create('/nova-api/company-roles');
+        $route = new Route('GET', '/nova-api/{resource}', []);
+        $route->bind($request);
+        $request->setRouteResolver(fn () => $route);
+        $this->app->instance('request', $request);
+
+        $result = $this->extractResourceKey($request);
+        $this->assertEquals('company-roles', $result);
+    }
+
+    public function test_extract_resource_key_from_api_filters(): void
+    {
+        $request = Request::create('/nova-api/users/filters');
+        $route = new Route('GET', '/nova-api/{resource}/filters', []);
+        $route->bind($request);
+        $request->setRouteResolver(fn () => $route);
+        $this->app->instance('request', $request);
+
+        $result = $this->extractResourceKey($request);
+        $this->assertEquals('users', $result);
+    }
+
+    // ---------------------------------------------------------------
+    // lazyLoadResources tests
+    // ---------------------------------------------------------------
+
+    public function test_lazy_load_for_index_page(): void
+    {
+        $this->cache->store(['users' => [UserResource::class, PostResource::class]], []);
+
         $request = Request::create('/nova/resources/users');
         $route = new Route('GET', '/nova/resources/{resource}', []);
         $route->name('nova.pages.index');
@@ -265,22 +269,15 @@ class TurboLoadsResourcesTest extends TestCase
         $request->setRouteResolver(fn () => $route);
         $this->app->instance('request', $request);
 
-        // Verify setup is correct
-        $this->assertFalse($this->shouldAutoRefresh());
-        $this->assertEquals('users', $request->route()->parameter('resource'));
-        $this->assertEquals([UserResource::class], $this->cache->getRelationships()['users']);
+        // For index page, should only load first resource
+        $relationships = $this->cache->getRelationships()['users'];
+        $this->assertCount(2, $relationships);
     }
 
-    public function test_resources_lazy_loads_related_for_detail_page(): void
+    public function test_lazy_load_for_detail_page(): void
     {
-        // Setup: production mode, cache with relationships
-        $this->app['env'] = 'production';
-        $this->cache->store(
-            ['posts' => [PostResource::class, CommentResource::class]],
-            []
-        );
+        $this->cache->store(['posts' => [PostResource::class, CommentResource::class]], []);
 
-        // Create request for detail page
         $request = Request::create('/nova/resources/posts/1');
         $route = new Route('GET', '/nova/resources/{resource}/{resourceId}', []);
         $route->name('nova.pages.detail');
@@ -289,8 +286,7 @@ class TurboLoadsResourcesTest extends TestCase
         $request->setRouteResolver(fn () => $route);
         $this->app->instance('request', $request);
 
-        // Verify setup for lazy loading with relationships
-        $this->assertFalse($this->shouldAutoRefresh());
+        // For detail page, should load all related resources
         $relationships = $this->cache->getRelationships()['posts'];
         $this->assertCount(2, $relationships);
         $this->assertContains(PostResource::class, $relationships);

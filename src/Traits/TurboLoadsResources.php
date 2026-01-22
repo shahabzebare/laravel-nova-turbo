@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Shahabzebare\NovaTurbo\Traits;
 
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use Laravel\Nova\Nova;
 use Shahabzebare\NovaTurbo\Services\MetadataCache;
@@ -24,6 +23,23 @@ use Shahabzebare\NovaTurbo\Services\MetadataCache;
 trait TurboLoadsResources
 {
     /**
+     * Nova API paths that are not resources (styles, scripts, menus, etc.)
+     * These should skip lazy loading entirely.
+     *
+     * @var array<int, string>
+     */
+    protected array $nonResourcePaths = [
+        'styles',
+        'scripts',
+        'menus',
+        'search',
+        'cards',
+        'dashboards',
+        'notifications',
+        'global-search',
+    ];
+
+    /**
      * Override the resources method to enable lazy loading.
      */
     protected function resources(): void
@@ -32,15 +48,6 @@ trait TurboLoadsResources
 
         // Safety: no route available = early boot, console, etc.
         if ($request->route() === null) {
-            Log::debug('[NovaTurbo] No route, loading all resources');
-            parent::resources();
-
-            return;
-        }
-
-        // In development mode with auto-refresh, skip lazy loading
-        if ($this->shouldAutoRefresh()) {
-            Log::debug('[NovaTurbo] Auto-refresh enabled, loading all resources');
             parent::resources();
 
             return;
@@ -52,7 +59,6 @@ trait TurboLoadsResources
 
         // No cache = load all (cache hasn't been generated yet)
         if (empty($relationships)) {
-            Log::debug('[NovaTurbo] No cache found, loading all resources');
             parent::resources();
 
             return;
@@ -63,7 +69,6 @@ trait TurboLoadsResources
 
         // No resource = dashboard/home, load all for menu
         if (empty($resource)) {
-            Log::debug('[NovaTurbo] No resource key (dashboard), loading all resources');
             parent::resources();
 
             return;
@@ -71,7 +76,6 @@ trait TurboLoadsResources
 
         // Resource not in cache = load all (safety fallback)
         if (! isset($relationships[$resource])) {
-            Log::debug("[NovaTurbo] Resource '{$resource}' not in cache, loading all resources");
             parent::resources();
 
             return;
@@ -79,8 +83,6 @@ trait TurboLoadsResources
 
         // Lazy load only needed resources
         $this->lazyLoadResources($request, $resource, $relationships[$resource]);
-
-        Log::debug('[NovaTurbo] Lazy loaded: '.count($relationships[$resource]).' resources for '.$resource);
     }
 
     /**
@@ -100,7 +102,14 @@ trait TurboLoadsResources
             $segments = explode('/', $path);
 
             // nova-api/{resource} → index 1 is the resource
-            return $segments[1] ?? null;
+            $potentialResource = $segments[1] ?? null;
+
+            // Skip non-resource API paths (styles, scripts, menus, etc.)
+            if ($potentialResource && in_array($potentialResource, $this->nonResourcePaths, true)) {
+                return null;
+            }
+
+            return $potentialResource;
         }
 
         return null;
@@ -131,14 +140,5 @@ trait TurboLoadsResources
 
         // Index/Create pages only need the current resource
         Nova::resources([$relatedResources[0]]);
-    }
-
-    /**
-     * Determine if we should auto-refresh (skip lazy loading).
-     */
-    protected function shouldAutoRefresh(): bool
-    {
-        return app()->environment('local')
-            && config('nova-turbo.auto_refresh_in_dev', false);
     }
 }
