@@ -20,6 +20,26 @@ With Nova Turbo:
 - Only loads **1-5** resources per page (current resource + relationships)
 - Dramatically improves page load times
 
+## Benchmarks
+
+Real-world performance comparison on a Nova installation with 100+ resources:
+
+| Metric | Without Turbo | With Turbo | Improvement |
+|--------|---------------|------------|-------------|
+| Server Response Time | 455.58 ms | 186.00 ms | **59% faster** |
+| Resources Loaded | ~100 | 1-5 | **95% reduction** |
+
+<details>
+<summary>📊 Click to see benchmark screenshots</summary>
+
+### With Nova Turbo (186ms)
+![With Nova Turbo](assets/benchmark-with-turbo.png)
+
+### Without Nova Turbo (455ms)
+![Without Nova Turbo](assets/benchmark-without-turbo.png)
+
+</details>
+
 ## Installation
 
 ```bash
