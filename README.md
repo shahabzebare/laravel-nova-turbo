@@ -83,6 +83,9 @@ return [
     'resource_paths' => [
         app_path('Nova'),
     ],
+
+    // Auto-regenerate cache when Laravel's cache is cleared (e.g., during deployments)
+    'regenerate_on_cache_clear' => true,
 ];
 ```
 
@@ -107,26 +110,35 @@ Then re-run `php artisan nova:turbo-cache`.
 
 ## Deployment
 
-Add to your deployment script:
+The cache is **automatically regenerated** when you run `php artisan cache:clear` during deployments (enabled by default via `regenerate_on_cache_clear`).
+
+If you prefer manual control, add to your deployment script:
 
 ```bash
 php artisan nova:turbo-cache
 ```
 
-Consider adding it after `config:cache`:
+Typical deployment order:
 
 ```bash
 php artisan config:cache
 php artisan route:cache
-php artisan nova:turbo-cache
+php artisan cache:clear          # Auto-regenerates turbo cache
+# OR manually: php artisan nova:turbo-cache
+```
+
+To disable automatic regeneration:
+```env
+NOVA_TURBO_REGENERATE_ON_CLEAR=false
 ```
 
 ## How It Works
 
 1. The artisan command scans all resources and their relationship fields
-2. It builds a dependency map and caches it as a PHP array file
+2. It builds a dependency map and caches it as a PHP array file (with version tracking)
 3. On page load, only the needed resources are registered
 4. The cached metadata is sent to the frontend to prevent JavaScript errors
+5. Cache is automatically invalidated when the package is updated (version mismatch)
 
 ## Development Mode
 
