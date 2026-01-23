@@ -29,7 +29,9 @@ class TurboCacheCommand extends Command
         }
 
         // Dispatch ServingNova event for proper Nova initialization
-        ServingNova::dispatch(app(), request());
+        // Nova 4: __construct(Request $request)
+        // Nova 5: __construct(Application $app, Request $request)
+        $this->dispatchServingNovaEvent();
 
         $this->components->info('Scanning Nova resources...');
         $resources = $scanner->scan();
@@ -79,5 +81,26 @@ class TurboCacheCommand extends Command
                 'perPageOptions' => $class::perPageOptions(),
             ];
         })->values()->all();
+    }
+
+    /**
+     * Dispatch ServingNova event with version-compatible arguments.
+     *
+     * Nova 4: __construct(Request $request)
+     * Nova 5: __construct(Application $app, Request $request)
+     */
+    protected function dispatchServingNovaEvent(): void
+    {
+        $reflection = new \ReflectionClass(ServingNova::class);
+        $constructor = $reflection->getConstructor();
+        $parameterCount = $constructor ? $constructor->getNumberOfParameters() : 0;
+
+        if ($parameterCount >= 2) {
+            // Nova 5+: expects (Application $app, Request $request)
+            ServingNova::dispatch(app(), request());
+        } else {
+            // Nova 4: expects (Request $request)
+            ServingNova::dispatch(request());
+        }
     }
 }
