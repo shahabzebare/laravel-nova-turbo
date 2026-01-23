@@ -1,7 +1,9 @@
 # Laravel Nova Turbo
 
 [![Latest Version on Packagist](https://img.shields.io/packagist/v/shahabzebare/laravel-nova-turbo.svg?style=flat-square)](https://packagist.org/packages/shahabzebare/laravel-nova-turbo)
+[![Tests](https://github.com/shahabzebare/laravel-nova-turbo/actions/workflows/tests.yml/badge.svg)](https://github.com/shahabzebare/laravel-nova-turbo/actions/workflows/tests.yml)
 [![Total Downloads](https://img.shields.io/packagist/dt/shahabzebare/laravel-nova-turbo.svg?style=flat-square)](https://packagist.org/packages/shahabzebare/laravel-nova-turbo)
+[![License](https://img.shields.io/packagist/l/shahabzebare/laravel-nova-turbo.svg?style=flat-square)](https://packagist.org/packages/shahabzebare/laravel-nova-turbo)
 
 🚀 **Turbocharge Laravel Nova** by lazy loading resources.
 
@@ -141,4 +143,4 @@ MIT License. See [LICENSE](LICENSE) for details.
 
 ## Credits
 
-- [Shahab Al Zebari](https://github.com/shahabzebare)
+- [Shahab Zebari](https://github.com/shahabzebare)
