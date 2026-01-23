@@ -26,4 +26,16 @@ return [
     'resource_paths' => [
         app_path('Nova'),
     ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Regenerate Cache on Deploy Events
+    |--------------------------------------------------------------------------
+    |
+    | When enabled, the turbo cache will automatically regenerate when
+    | Laravel's cache is cleared (e.g., during deployments when running
+    | php artisan config:clear or cache:clear).
+    |
+    */
+    'regenerate_on_cache_clear' => env('NOVA_TURBO_REGENERATE_ON_CLEAR', true),
 ];

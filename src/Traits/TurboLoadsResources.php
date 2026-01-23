@@ -53,16 +53,17 @@ trait TurboLoadsResources
             return;
         }
 
-        // Get cached relationships
+        // Get cached relationships (validated for version compatibility)
         $cache = app(MetadataCache::class);
-        $relationships = $cache->getRelationships();
 
-        // No cache = load all (cache hasn't been generated yet)
-        if (empty($relationships)) {
+        // No valid cache = load all (cache hasn't been generated or version mismatch)
+        if (! $cache->isValid()) {
             parent::resources();
 
             return;
         }
+
+        $relationships = $cache->getRelationships();
 
         // Extract resource key from request (works for both page and API requests)
         $resource = $this->extractResourceKey($request);

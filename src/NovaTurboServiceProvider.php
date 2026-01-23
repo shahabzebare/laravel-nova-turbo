@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Shahabzebare\NovaTurbo;
 
+use Illuminate\Cache\Events\CacheCleared;
+use Illuminate\Support\Facades\Event;
 use Illuminate\Support\ServiceProvider;
 use Laravel\Nova\Events\ServingNova;
 use Laravel\Nova\Nova;
@@ -39,11 +41,33 @@ class NovaTurboServiceProvider extends ServiceProvider
             $this->commands([
                 TurboCacheCommand::class,
             ]);
+
+            // Listen for cache:cleared event to regenerate turbo cache
+            $this->registerCacheClearedListener();
         }
 
         // Use Nova::serving for proper timing (after Nova initializes)
         Nova::serving(function (ServingNova $event) {
             $this->overrideResourceMetadata();
+        });
+    }
+
+    /**
+     * Register listener for cache:cleared event to auto-regenerate turbo cache.
+     */
+    protected function registerCacheClearedListener(): void
+    {
+        if (! config('nova-turbo.regenerate_on_cache_clear', true)) {
+            return;
+        }
+
+        Event::listen(CacheCleared::class, function (CacheCleared $event) {
+            // Only regenerate if a cache existed before
+            $cache = $this->app->make(MetadataCache::class);
+            if ($cache->exists()) {
+                $this->app->make(\Illuminate\Console\Kernel::class)
+                    ->call('nova:turbo-cache');
+            }
         });
     }
 
@@ -57,8 +81,8 @@ class NovaTurboServiceProvider extends ServiceProvider
     {
         $cache = $this->app->make(MetadataCache::class);
 
-        // Only override if cache exists
-        if (! $cache->exists()) {
+        // Only override if cache is valid (exists and version matches)
+        if (! $cache->isValid()) {
             return;
         }
 

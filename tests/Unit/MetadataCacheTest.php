@@ -110,4 +110,60 @@ class MetadataCacheTest extends TestCase
     {
         $this->assertEquals([], $this->cache->getResourceMetadata());
     }
+
+    public function test_is_valid_returns_false_when_no_cache(): void
+    {
+        $this->assertFalse($this->cache->isValid());
+    }
+
+    public function test_is_valid_returns_true_for_valid_cache(): void
+    {
+        $this->cache->store(['users' => ['App\\Nova\\User']], []);
+
+        $this->assertTrue($this->cache->isValid());
+    }
+
+    public function test_stored_cache_includes_version(): void
+    {
+        $this->cache->store(['users' => ['App\\Nova\\User']], []);
+        $data = require $this->cache->getPath();
+
+        $this->assertArrayHasKey('version', $data);
+        $this->assertEquals(MetadataCache::CACHE_VERSION, $data['version']);
+    }
+
+    public function test_is_valid_returns_false_for_version_mismatch(): void
+    {
+        // Create a cache file with an old version
+        $data = [
+            'version' => MetadataCache::CACHE_VERSION - 1,
+            'relationships' => ['users' => ['App\\Nova\\User']],
+            'metadata' => [],
+            'generated_at' => now()->toIso8601String(),
+        ];
+
+        $content = '<?php return '.var_export($data, true).';'.PHP_EOL;
+        file_put_contents($this->cache->getPath(), $content);
+
+        // File exists but version doesn't match
+        $this->assertTrue($this->cache->exists());
+        $this->assertFalse($this->cache->isValid());
+    }
+
+    public function test_get_returns_null_for_version_mismatch(): void
+    {
+        // Create a cache file with an old version
+        $data = [
+            'version' => MetadataCache::CACHE_VERSION - 1,
+            'relationships' => ['users' => ['App\\Nova\\User']],
+            'metadata' => [],
+            'generated_at' => now()->toIso8601String(),
+        ];
+
+        $content = '<?php return '.var_export($data, true).';'.PHP_EOL;
+        file_put_contents($this->cache->getPath(), $content);
+
+        // get() returns null when version doesn't match
+        $this->assertNull($this->cache->get());
+    }
 }

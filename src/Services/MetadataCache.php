@@ -12,6 +12,12 @@ namespace Shahabzebare\NovaTurbo\Services;
  */
 class MetadataCache
 {
+    /**
+     * Cache version - increment this when cache structure changes.
+     * This ensures stale caches are invalidated after package updates.
+     */
+    public const CACHE_VERSION = 1;
+
     protected string $cachePath;
 
     public function __construct()
@@ -28,13 +34,27 @@ class MetadataCache
     }
 
     /**
+     * Check if the cache is valid (exists and version matches).
+     */
+    public function isValid(): bool
+    {
+        if (! $this->exists()) {
+            return false;
+        }
+
+        $data = require $this->cachePath;
+
+        return isset($data['version']) && $data['version'] === self::CACHE_VERSION;
+    }
+
+    /**
      * Get all cached data.
      *
-     * @return array{relationships: array, metadata: array, generated_at: string}|null
+     * @return array{version: int, relationships: array, metadata: array, generated_at: string}|null
      */
     public function get(): ?array
     {
-        if (! $this->exists()) {
+        if (! $this->isValid()) {
             return null;
         }
 
@@ -70,6 +90,7 @@ class MetadataCache
     public function store(array $relationships, array $metadata): void
     {
         $data = [
+            'version' => self::CACHE_VERSION,
             'relationships' => $relationships,
             'metadata' => $metadata,
             'generated_at' => now()->toIso8601String(),
