@@ -50,8 +50,8 @@ class NovaTurboServiceProvider extends ServiceProvider
     /**
      * Override Nova's resource metadata with cached data.
      *
-     * Uses ONLY cached metadata - no live resource loading for authorization.
-     * This is the key to performance: we skip Nova::resourceInformation() entirely.
+     * Only provides metadata for resources that were actually loaded by the trait.
+     * This keeps the JSON payload minimal while maintaining functionality.
      */
     protected function overrideResourceMetadata(): void
     {
@@ -69,10 +69,33 @@ class NovaTurboServiceProvider extends ServiceProvider
             return;
         }
 
-        // Provide cached metadata directly - NO live authorization check
-        // This avoids loading all resource classes just for metadata
+        // Get the resources that were actually loaded by the trait
+        $loadedResources = Nova::$resources;
+
+        // If no resources loaded yet, don't override (let Nova handle it)
+        if (empty($loadedResources)) {
+            return;
+        }
+
+        // Filter cached metadata to only include loaded resources
+        $loadedUriKeys = [];
+        foreach ($loadedResources as $resourceClass) {
+            if (class_exists($resourceClass) && method_exists($resourceClass, 'uriKey')) {
+                $loadedUriKeys[] = $resourceClass::uriKey();
+            }
+        }
+
+        // Filter metadata to only loaded resources
+        $filteredMetadata = array_filter($cachedMetadata, function ($meta) use ($loadedUriKeys) {
+            return in_array($meta['uriKey'] ?? '', $loadedUriKeys, true);
+        });
+
+        // Re-index the array to ensure proper JSON encoding
+        $filteredMetadata = array_values($filteredMetadata);
+
+        // Provide filtered metadata
         Nova::provideToScript([
-            'resources' => $cachedMetadata,
+            'resources' => $filteredMetadata,
         ]);
     }
 }
